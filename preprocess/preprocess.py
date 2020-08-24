@@ -78,7 +78,7 @@ def extract_patches(volume, patch_shape, extraction_step,datype='float32'):
       for d in range((img_d-patch_d)//stride_d+1):
         raw_patch_martrix[k]=volume[h*stride_h:(h*stride_h)+patch_h,\
                             			w*stride_w:(w*stride_w)+patch_w,\
-                              				d*stride_d:(d*stride_d)+patch_d]
+                              				d*stride_d:(d*stride_d)+patch_d].squeeze()
         k+=1
   assert(k==N_patches_img)
   return raw_patch_martrix
@@ -112,9 +112,9 @@ def get_patches_lab(T1_vols, T2_vols, label_vols, extraction_step,
         # Filtering extracted patches
         label_patches = label_patches[valid_idxs]
 
-        x = np.vstack((x, np.zeros((len(label_patches), patch_shape_1d, 
+        x = np.vstack((x, np.zeros((len(label_patches), patch_shape_1d,
                                                 patch_shape_1d, patch_shape_1d, 2),dtype="float32")))
-        y = np.vstack((y, np.zeros((len(label_patches), patch_shape_1d, 
+        y = np.vstack((y, np.zeros((len(label_patches), patch_shape_1d,
                                                 patch_shape_1d, patch_shape_1d),dtype="uint8")))
 
         y[y_length:, :, :, :] = label_patches
@@ -122,7 +122,7 @@ def get_patches_lab(T1_vols, T2_vols, label_vols, extraction_step,
         # Sampling strategy: reject samples which labels are mostly 0 and have less than 6000 nonzero elements
         T1_train = extract_patches(T1_vols[idx], patch_shape, extraction_step,datype="float32")
         x[y_length:, :, :, :, 0] = T1_train[valid_idxs]
-        
+
         # Sampling strategy: reject samples which labels are mostly 0 and have less than 6000 nonzero elements
         T2_train = extract_patches(T2_vols[idx], patch_shape, extraction_step,datype="float32")
         x[y_length:, :, :, :, 1] = T2_train[valid_idxs]
@@ -161,7 +161,7 @@ def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_imag
         print(case_idx)
         T1_vols[(case_idx-c-1), :, :, :] = read_vol(case_idx, 'T1', dir)
         T2_vols[(case_idx-c-1), :, :, :] = read_vol(case_idx, 'T2', dir)
-        label_vols[(case_idx-c-1), :, :, :] = read_vol(case_idx, 'label', dir)
+        label_vols[(case_idx-c-1), :, :, :] = read_vol(case_idx, 'label', dir).squeeze()
     T1_mean = T1_vols.mean()
     T1_std = T1_vols.std()
     T1_vols = (T1_vols - T1_mean) / T1_std
@@ -170,11 +170,11 @@ def preprocess_dynamic_lab(dir,num_classes, extraction_step,patch_shape,num_imag
     T2_vols = (T2_vols - T2_mean) / T2_std
 
     for i in range(T1_vols.shape[0]):
-        T1_vols[i] = ((T1_vols[i] - np.min(T1_vols[i])) / 
+        T1_vols[i] = ((T1_vols[i] - np.min(T1_vols[i])) /
                                     (np.max(T1_vols[i])-np.min(T1_vols[i])))*255
     for i in range(T2_vols.shape[0]):
-        T2_vols[i] = ((T2_vols[i] - np.min(T2_vols[i])) / 
-                                    (np.max(T2_vols[i])-np.min(T2_vols[i])))*255    
+        T2_vols[i] = ((T2_vols[i] - np.min(T2_vols[i])) /
+                                    (np.max(T2_vols[i])-np.min(T2_vols[i])))*255
     T1_vols = T1_vols/127.5 -1.
     T2_vols = T2_vols/127.5 -1.
     x,y=get_patches_lab(T1_vols,T2_vols,label_vols,extraction_step,patch_shape,validating=validating,
@@ -208,12 +208,12 @@ def get_patches_unlab(T1_vols, T2_vols, extraction_step,patch_shape,dir):
         valid_idxs = np.where(np.count_nonzero(label_patches, axis=(1, 2, 3)) > 6000)
 
         label_patches = label_patches[valid_idxs]
-        x = np.vstack((x, np.zeros((len(label_patches), patch_shape_1d, 
+        x = np.vstack((x, np.zeros((len(label_patches), patch_shape_1d,
                                             patch_shape_1d, patch_shape_1d, 2))))
 
         T1_train = extract_patches(T1_vols[idx], patch_shape, extraction_step,datype="float32")
         x[x_length:, :, :, :, 0] = T1_train[valid_idxs]
-        
+
         T2_train = extract_patches(T2_vols[idx], patch_shape, extraction_step,datype="float32")
         x[x_length:, :, :, :, 1] = T2_train[valid_idxs]
     return x
@@ -235,11 +235,11 @@ def preprocess_dynamic_unlab( dir,extraction_step,patch_shape,num_images_trainin
     T2_std = T2_vols.std()
     T2_vols = (T2_vols - T2_mean) / T2_std
     for i in range(T1_vols.shape[0]):
-        T1_vols[i] = ((T1_vols[i] - np.min(T1_vols[i])) / 
+        T1_vols[i] = ((T1_vols[i] - np.min(T1_vols[i])) /
                                         (np.max(T1_vols[i])-np.min(T1_vols[i])))*255
     for i in range(T2_vols.shape[0]):
-        T2_vols[i] = ((T2_vols[i] - np.min(T2_vols[i])) / 
-                                        (np.max(T2_vols[i])-np.min(T2_vols[i])))*255  
+        T2_vols[i] = ((T2_vols[i] - np.min(T2_vols[i])) /
+                                        (np.max(T2_vols[i])-np.min(T2_vols[i])))*255
     T1_vols = T1_vols/127.5 -1.
     T2_vols = T2_vols/127.5 -1.
     x=get_patches_unlab(T1_vols, T2_vols, extraction_step, patch_shape,dir)
@@ -253,7 +253,7 @@ def preprocess_static( org_dir, prepro_dir, dataset="labeled", overwrite=False):
     for subject_folder in glob.glob(os.path.join(org_dir, "*", "*")):
         if os.path.isdir(subject_folder):
             subject = os.path.basename(subject_folder)
-            new_subject_folder = os.path.join(prepro_dir, 
+            new_subject_folder = os.path.join(prepro_dir,
                 os.path.basename(os.path.dirname(subject_folder)),subject)
             if not os.path.exists(new_subject_folder) or overwrite:
                 if not os.path.exists(new_subject_folder):
@@ -268,7 +268,7 @@ def preprocess_static( org_dir, prepro_dir, dataset="labeled", overwrite=False):
         for case_idx in range(11, 24) :
             normalise(case_idx, 'T1',org_dir,prepro_dir)
             normalise(case_idx, 'T2',org_dir,prepro_dir)
-            
+
 """
 dataset class for preparing training data of basic U-Net
 """
@@ -280,7 +280,7 @@ class dataset(object):
                                         data_directory,num_classes,extraction_step,
                                         patch_shape,number_images_training)
 
-    self.data_lab, self.label = shuffle(self.data_lab, 
+    self.data_lab, self.label = shuffle(self.data_lab,
                                                     self.label, random_state=0)
     print("Data_shape:",self.data_lab.shape)
     print("Data lab max and min:",np.max(self.data_lab),np.min(self.data_lab))
@@ -297,7 +297,7 @@ class dataset(object):
 dataset_badGAN class for preparing data of our model
 """
 class dataset_badGAN(object):
-  def __init__(self,num_classes, extraction_step, number_images_training, batch_size, 
+  def __init__(self,num_classes, extraction_step, number_images_training, batch_size,
                     patch_shape, number_unlab_images_training,data_directory):
     # Extract labelled and unlabelled patches,
     self.batch_size=batch_size
